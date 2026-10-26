@@ -1,0 +1,21 @@
+customer_id,name,email,phone,age,gender,membership_tier,total_spent,order_count,favorite_category,signup_date
+CUST001,Somchai Jaidee,somchai@email.com,0812345678,35,Male,Gold,4500,15,Espresso,2025-01-15
+CUST002,Somsri Srisawat,somsri@email.com,0898765432,28,Female,Silver,2300,8,Matcha,2025-02-10
+CUST003,Anan Sukjai,anan.sukjai@email.com,0823456789,42,Male,Platinum,8900,28,Cold Brew,2024-11-05
+CUST004,Kanya Wattana,kanya@email.com,0834567890,,Female,Bronze,650,3,Bakery,2025-03-01
+CUST005,Prasert Deemark,prasert.d@email.com,INVALID_PHONE,50,Male,Gold,5100,18,Espresso,2024-12-20
+CUST006,Somsri Srisawat,somsri@email.com,0898765432,28,Female,Silver,2300,8,Matcha,2025-02-10
+CUST007,Narakorn Wong,narakorn@domain,0845678901,22,Non-Binary,Bronze,1200,5,Hojicha,2025-03-15
+CUST008,Wichai Ruang,wichai@email.com,0856789012,65,Male,Silver,3100,11,Espresso,2025-01-22
+CUST009,Pornpimol Kao,pornpimol@email.com,0867890123,31,Female,Platinum,12500,42,Cold Brew,2024-10-10
+CUST010,Thanakorn Preecha,thanakorn@email.com,0878901234,-5,Male,Bronze,450,2,Bakery,2025-03-20
+CUST011,Siriporn Boon,siriporn@email.com,0889012345,29,Female,Gold,4200,14,Matcha,2025-02-01
+CUST012,Chaiwat Sae-tang,chaiwat@email.com,0890123456,38,Male,Silver,2800,9,Hojicha,2025-01-30
+CUST013,Manee Meeta,manee@email.com,0811223344,24,Female,Bronze,980,4,Bakery,2025-03-05
+CUST014,Kitti Rattana,kitti.r@email.com,0822334455,45,Male,Gold,6200,20,Espresso,2024-12-15
+CUST015,Nida Cherd,nida@email.com,0833445566,33,Female,Silver,3400,12,Matcha,2025-02-14
+CUST016,Boonmee Srisuk,boonmee@email.com,0844556677,58,Male,Bronze,1500,6,Cold Brew,2025-01-10
+CUST017,Pimchanok Kaew,pimchanok@email.com,0855667788,27,Female,Platinum,9400,31,Matcha,2024-11-20
+CUST018,Teerapat Wong,teerapat@email.com,0866778899,36,Male,Silver,2900,10,Hojicha,2025-02-28
+CUST019,Waraporn Jit,waraporn@email.com,0877889900,41,Female,Gold,4800,16,Espresso,2025-01-05
+CUST020,Arak Sang,arak@email.com,0888990011,19,Male,Bronze,820,3,Bakery,2025-03-12

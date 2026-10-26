@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>☕ BaanBrew Dashboard · ระบบวิเคราะห์ข้อมูลและ AI บริหารจัดการร้านกาแฟ</title>
+  <!-- Tailwind CSS & Chart.js -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Google Fonts: Anuphan & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Anuphan:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Anuphan', sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+    .tab-active { border-bottom: 3px solid #6B3E26; color: #6B3E26; font-weight: 700; }
+  </style>
+</head>
+<body class="bg-stone-100 text-stone-900 min-h-screen">
+
+  <!-- Top Navigation & Brand -->
+  <header class="bg-white border-b border-stone-200 sticky top-0 z-50 shadow-xs">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-2">
+        <div class="flex items-center gap-3">
+          <span class="text-3xl">☕</span>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-xl sm:text-2xl font-extrabold text-[#6B3E26] tracking-tight">บ้านบรู · BaanBrew Dashboard</h1>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+                ADT-RAISE Batch 2 (M3)
+              </span>
+            </div>
+            <p class="text-xs text-stone-500">
+              ระบบวิเคราะห์ข้อมูล 53,092 รายการ (1 เม.ย. 2025 – 20 ก.ย. 2026) · จัดทำโดย รณกฤต ตันสว่างกุล
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> ระบบออนไลน์พร้อมตรวจงาน
+          </span>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex space-x-1 sm:space-x-8 overflow-x-auto text-sm border-t border-stone-100 mt-2">
+        <button onclick="switchTab('tab-overview')" id="btn-tab-overview" class="tab-btn tab-active py-3 px-2 sm:px-1 whitespace-nowrap">
+          📊 1. ภาพรวมยอดขาย (Lab 1)
+        </button>
+        <button onclick="switchTab('tab-badcharts')" id="btn-tab-badcharts" class="tab-btn py-3 px-2 sm:px-1 text-stone-500 hover:text-stone-800 whitespace-nowrap">
+          🛠️ 2. ซ่อมกราฟแย่ (Lab 2.2)
+        </button>
+        <button onclick="switchTab('tab-firestore')" id="btn-tab-firestore" class="tab-btn py-3 px-2 sm:px-1 text-stone-500 hover:text-stone-800 whitespace-nowrap">
+          🔥 3. สด · Firestore (Lab 3)
+        </button>
+        <button onclick="switchTab('tab-rfm')" id="btn-tab-rfm" class="tab-btn py-3 px-2 sm:px-1 text-stone-500 hover:text-stone-800 whitespace-nowrap">
+          👥 4. ลูกค้า & เมนู RFM (Lab 4)
+        </button>
+        <button onclick="switchTab('tab-forecast')" id="btn-tab-forecast" class="tab-btn py-3 px-2 sm:px-1 text-stone-500 hover:text-stone-800 whitespace-nowrap">
+          📈 5. พยากรณ์ & ผิดปกติ (Lab 4)
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+
+    <!-- ========================================== -->
+    <!-- TAB 1: ภาพรวมยอดขาย & การบ้านที่ 1 -->
+    <!-- ========================================== -->
+    <section id="tab-overview" class="tab-content space-y-6">
+      <!-- 4 KPI Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm">
+          <div class="text-xs font-semibold text-stone-500 uppercase tracking-wide">ยอดขายรวมสุทธิ</div>
+          <div class="mt-2 text-2xl sm:text-3xl font-bold font-mono text-stone-900">฿4,463,443</div>
+          <div class="mt-1 text-xs text-stone-400">จาก 53,092 รายการสินค้า</div>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm">
+          <div class="text-xs font-semibold text-stone-500 uppercase tracking-wide">จำนวนบิลทั้งหมด</div>
+          <div class="mt-2 text-2xl sm:text-3xl font-bold font-mono text-stone-900">34,773 <span class="text-sm font-normal text-stone-500">บิล</span></div>
+          <div class="mt-1 text-xs text-stone-400">นับ Distinct order_id ไม่ซ้ำ</div>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm">
+          <div class="text-xs font-semibold text-stone-500 uppercase tracking-wide">ยอดซื้อเฉลี่ยต่อบิล</div>
+          <div class="mt-2 text-2xl sm:text-3xl font-bold font-mono text-stone-900">฿128.36</div>
+          <div class="mt-1 text-xs text-stone-400">ยอดขายรวม ÷ จำนวนบิล</div>
+        </div>
+        <div class="bg-white rounded-2xl p-5 border border-stone-200 shadow-sm">
+          <div class="text-xs font-semibold text-stone-500 uppercase tracking-wide">ลูกค้าสมาชิกไม่ซ้ำ</div>
+          <div class="mt-2 text-2xl sm:text-3xl font-bold font-mono text-stone-900">2,507 <span class="text-sm font-normal text-stone-500">คน</span></div>
+          <div class="mt-1 text-xs text-stone-400">เฉพาะสมาชิก (ไม่รวม walk-in)</div>
+        </div>
+      </div>
+
+      <!-- MAIN HOMEWORK 1 CHART: Hourly Bills by Branch -->
+      <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+          <div>
+            <div class="inline-block px-2.5 py-0.5 bg-blue-100 text-blue-900 text-xs font-bold rounded mb-1">
+              การบ้านที่ 1 (Lab 1)
+            </div>
+            <h2 class="text-xl font-bold text-stone-900">กราฟจำนวนบิลตามชั่วโมงของวัน แยกตามสาขา (Hourly Bills by Branch)</h2>
+            <p class="text-xs text-stone-500">เปรียบเทียบพฤติกรรมการสั่งซื้อในแต่ละชั่วโมง (07:00 – 20:00 น.) ของทั้ง 5 สาขา</p>
+          </div>
+          <div class="text-xs text-stone-500">
+            ช่วงเวลาข้อมูล: 1 เม.ย. 68 – 20 ก.ย. 69
+          </div>
+        </div>
+
+        <div class="h-96 relative">
+          <canvas id="hourlyBillsChart"></canvas>
+        </div>
+
+        <!-- 3 Observations -->
+        <div class="mt-8 rounded-xl bg-amber-50/80 p-5 border border-amber-200 text-sm">
+          <h3 class="font-bold text-amber-950 flex items-center gap-2 mb-3">
+            <span>📝</span> 3 ข้อสังเกตสำคัญจากการวิเคราะห์กราฟชั่วโมงการขาย:
+          </h3>
+          <div class="space-y-3">
+            <div class="p-3 bg-white rounded-lg border border-amber-200/60 shadow-xs">
+              <span class="font-bold text-stone-900">1. สาขา "สีลม" ยอดพุ่งสูงสุดช่วงเช้า (Morning Peak 07:00–09:00 น.):</span>
+              <p class="text-stone-600 text-xs sm:text-sm mt-0.5">
+                เวลา 08:00 น. ยอดพุ่งถึง <strong>1,241 บิล</strong> (เกือบครึ่งหนึ่งของยอดทั้งเครือ) เพราะเป็นย่านอาคารสำนักงาน แต่หลัง 17:00 น. ยอดตกลงเหลือไม่ถึง 100 บิล → <em>ข้อเสนอแนะ:</em> เพิ่มบาริสต้ากะเช้า และเปิดสั่งล่วงหน้าผ่านแอป
+              </p>
+            </div>
+            <div class="p-3 bg-white rounded-lg border border-amber-200/60 shadow-xs">
+              <span class="font-bold text-stone-900">2. สาขา "สยาม" ยอดพีคช่วงบ่ายและเย็น (Afternoon Peak 15:00–18:00 น.):</span>
+              <p class="text-stone-600 text-xs sm:text-sm mt-0.5">
+                ช่วงเช้าขายได้น้อย แต่เริ่มพุ่งตั้งแต่ 12:00 น. และแตะจุดสูงสุดช่วง 16:00 น. ที่ <strong>1,059 บิล</strong> ตามพฤติกรรมวัยรุ่นและคนเดินช้อปปิ้ง → <em>ข้อเสนอแนะ:</em> จัดพนักงานกะบ่าย-ค่ำ และทำโปรโมชั่น Afternoon Tea
+              </p>
+            </div>
+            <div class="p-3 bg-white rounded-lg border border-amber-200/60 shadow-xs">
+              <span class="font-bold text-stone-900">3. ภาพรวมยอดขายทั้งเครือมี Double Peaks (12:00 และ 15:00 น.):</span>
+              <p class="text-stone-600 text-xs sm:text-sm mt-0.5">
+                ช่วงพีคสุดคือ 12:00–12:59 น. (3,739 บิล) และยอดพีครองคือ 15:00–15:59 น. (3,249 บิล) สอดคล้องกับพฤติกรรมกาแฟแก้วสองช่วงบ่าย (Afternoon Slump)
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 2 Additional Charts: Daily Trend & Branch Revenue -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+          <h3 class="font-bold text-stone-900 mb-1">ยอดขายรายวัน (พร้อมเส้นค่าเฉลี่ย 7 วัน)</h3>
+          <p class="text-xs text-stone-500 mb-4">แนวโน้มเติบโตอย่างมั่นคงตลอด 18 เดือน</p>
+          <div class="h-64 relative">
+            <canvas id="dailyTrendChart"></canvas>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+          <h3 class="font-bold text-stone-900 mb-1">ยอดขายรวมแยกตามสาขา (เรียงจากมากไปน้อย)</h3>
+          <p class="text-xs text-stone-500 mb-4">สยามอันดับ 1 (1.23M) ตามด้วยสีลม (996k) และบางนา (898k)</p>
+          <div class="h-64 relative">
+            <canvas id="branchSummaryChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 2: ซ่อมกราฟแย่ (Lab 2.2) -->
+    <!-- ========================================== -->
+    <section id="tab-badcharts" class="tab-content hidden space-y-6">
+      <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+        <div class="inline-block px-2.5 py-0.5 bg-purple-100 text-purple-900 text-xs font-bold rounded mb-1">
+          การบ้านที่ 2 (Lab 2.2)
+        </div>
+        <h2 class="text-xl font-bold text-stone-900">ใบงานซ่อมกราฟแย่ 5 แบบ (LAB2_WORKSHEET)</h2>
+        <p class="text-xs text-stone-500 mt-1">
+          การแก้ไขกราฟที่ใช้ข้อมูลถูกต้อง แต่ทำให้คนดูเข้าใจผิดหรืออ่านไม่ออก ให้ตอบโจทย์ทางธุรกิจจริง
+        </p>
+      </div>
+
+      <!-- 5 Fixed Chart Cases -->
+      <div class="space-y-4">
+        <!-- Case 1 -->
+        <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-bold text-base text-stone-900">กราฟ 1 · สัดส่วนยอดขายแต่ละเมนู (แก้ Pie Chart 40 สี)</h3>
+            <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded">ซ่อมสำเร็จ</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+            <div class="p-4 bg-red-50/50 rounded-xl border border-red-200 text-red-950">
+              <span class="font-bold block mb-1">❌ ก่อนซ่อม (Bad Chart 1):</span>
+              ใช้ Pie Chart กับเมนูมากถึง 40 รายการ สีรุ้งลายตา ชิ้นพายซอยย่อยจนดูไม่ออกว่าเมนูไหนอยู่อันดับ 1 หรือ 2 หรือควรโปรโมตตัวใด
+            </div>
+            <div class="p-4 bg-emerald-50/50 rounded-xl border border-emerald-200 text-emerald-950">
+              <span class="font-bold block mb-1">✅ หลังซ่อม (Fixed Chart 1):</span>
+              เปลี่ยนเป็น <strong>Horizontal Bar Chart แสดง Top 10 เมนู</strong> สีเดียว เรียงจากมากไปน้อย พบว่า Top 10 ทำรายได้ถึง 43.8% ของร้าน (อันดับ 1 คือ Dark Roast Latte)
+            </div>
+          </div>
+        </div>
+
+        <!-- Case 2 -->
+        <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-bold text-base text-stone-900">กราฟ 2 · ยอดขายแยกสาขา (แก้ Truncated Y-Axis เริ่มที่ 500k)</h3>
+            <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded">ซ่อมสำเร็จ</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+            <div class="p-4 bg-red-50/50 rounded-xl border border-red-200 text-red-950">
+              <span class="font-bold block mb-1">❌ ก่อนซ่อม (Bad Chart 2):</span>
+              ตัดทอนแกน Y ให้เริ่มที่ 500,000 บาท ทำให้เสมือนว่าสยามขายได้มากกว่าอารีย์เป็น 10 เท่า ทั้งที่จริงต่างกันแค่ 2.27 เท่า + เรียงตามตัวอักษร
+            </div>
+            <div class="p-4 bg-emerald-50/50 rounded-xl border border-emerald-200 text-emerald-950">
+              <span class="font-bold block mb-1">✅ หลังซ่อม (Fixed Chart 2):</span>
+              <strong>ปรับแกน Y เริ่มที่ 0 เสมอ</strong> และเรียงลำดับจากยอดมากไปน้อย สะท้อนสัดส่วนแท้จริงอย่างซื่อสัตย์
+            </div>
+          </div>
+        </div>
+
+        <!-- Case 3 -->
+        <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-bold text-base text-stone-900">กราฟ 3 · ยอดขายรายวัน (แก้ 538 จุด เส้นยุ่งเหยิง)</h3>
+            <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded">ซ่อมสำเร็จ</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+            <div class="p-4 bg-red-50/50 rounded-xl border border-red-200 text-red-950">
+              <span class="font-bold block mb-1">❌ ก่อนซ่อม (Bad Chart 3):</span>
+              จุดข้อมูล 538 วันเส้นหนาทึบจนเป็นแถบสีแดง วันที่ทับกันอ่านไม่ออก ไม่เห็นแนวโน้มระยะยาว
+            </div>
+            <div class="p-4 bg-emerald-50/50 rounded-xl border border-emerald-200 text-emerald-950">
+              <span class="font-bold block mb-1">✅ หลังซ่อม (Fixed Chart 3):</span>
+              ใช้ <strong>7-Day Moving Average และรวมรายสัปดาห์ (Weekly Revenue)</strong> ตัด Noise ทำให้เห็นการเติบโตจาก 45k สู่ 68k/สัปดาห์ ชัดเจน
+            </div>
+          </div>
+        </div>
+
+        <!-- Case 4 -->
+        <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-bold text-base text-stone-900">กราฟ 4 · ยอดขายรายเดือน (แก้เข้าใจผิดว่าเดือนสุดท้ายยอดตก)</h3>
+            <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded">ซ่อมสำเร็จ</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+            <div class="p-4 bg-red-50/50 rounded-xl border border-red-200 text-red-950">
+              <span class="font-bold block mb-1">❌ ก่อนซ่อม (Bad Chart 4):</span>
+              ขึ้นเครื่องหมาย "ยอดตก! ⚠️" ในเดือน ก.ย. ทั้งที่จริงเดือนนั้นมีข้อมูลแค่ 20 วันแรก ทำให้ผู้บริหารตกใจสั่งโปรโมชั่นผิดจังหวะ
+            </div>
+            <div class="p-4 bg-emerald-50/50 rounded-xl border border-emerald-200 text-emerald-950">
+              <span class="font-bold block mb-1">✅ หลังซ่อม (Fixed Chart 4):</span>
+              เปลี่ยนเป็น <strong>ยอดขายเฉลี่ยต่อวัน (perDay)</strong> พบว่า ก.ย. ขายได้ ฿8,815/วัน สูงกว่าเดือนก่อนหน้าเสียอีก ยอดไม่ได้ตกแต่อย่างใด
+            </div>
+          </div>
+        </div>
+
+        <!-- Case 5 -->
+        <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="font-bold text-base text-stone-900">กราฟ 5 · ประเมินผลงานสาขา (แก้ตราหน้าอารีย์ว่าแย่สุด)</h3>
+            <span class="px-2.5 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded">ซ่อมสำเร็จ</span>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs sm:text-sm">
+            <div class="p-4 bg-red-50/50 rounded-xl border border-red-200 text-red-950">
+              <span class="font-bold block mb-1">❌ ก่อนซ่อม (Bad Chart 5):</span>
+              เทียบยอดขายสะสม ทำให้อารีย์ที่เพิ่งเปิดใหม่ได้ 11 เดือน (324 วัน) ดูเหมือนขายได้แย่ที่สุด
+            </div>
+            <div class="p-4 bg-emerald-50/50 rounded-xl border border-emerald-200 text-emerald-950">
+              <span class="font-bold block mb-1">✅ หลังซ่อม (Fixed Chart 5):</span>
+              เทียบด้วย <strong>ยอดขายเฉลี่ยต่อวันทำการ</strong> พบว่าอารีย์อยู่อันดับ 3 (฿1,673/วัน) สูงกว่าบางนาและมหาวิทยาลัย
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 3: สด · Firestore (Lab 3) -->
+    <!-- ========================================== -->
+    <section id="tab-firestore" class="tab-content hidden space-y-6">
+      <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+        <div class="inline-block px-2.5 py-0.5 bg-orange-100 text-orange-900 text-xs font-bold rounded mb-1">
+          การบ้านที่ 3 (Lab 3)
+        </div>
+        <h2 class="text-xl font-bold text-stone-900">ระบบฐานข้อมูล Real-time & ฟอร์มบันทึกยอดขาย (Firestore)</h2>
+        <p class="text-xs text-stone-500 mt-1">
+          การเชื่อมต่อ Cloud Firestore, ป้องกันการโกงราคาด้วย Security Rules และฟอร์มสร้าง Order ID อัตโนมัติ
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- ฟอร์มจำลองบันทึกยอดขาย -->
+        <div class="lg:col-span-2 bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+          <h3 class="font-bold text-stone-900 mb-1">ฟอร์มบันทึกยอดขายหน้าร้าน (Sale Form)</h3>
+          <p class="text-xs text-stone-500 mb-4">สร้างบิลใหม่ตามโครงสร้าง saleModel.js พร้อมสร้างเลขออเดอร์ไดนามิก</p>
+
+          <form id="saleSimForm" onsubmit="handleSaleSubmit(event)" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
+              <div>
+                <label class="block font-medium text-stone-700 mb-1">สาขา</label>
+                <select id="f-branch" class="w-full rounded-lg border border-stone-300 p-2 text-stone-800">
+                  <option value="สีลม">สาขาสีลม (ออฟฟิศ)</option>
+                  <option value="สยาม">สาขาสยาม (ห้าง)</option>
+                  <option value="บางนา">สาขาบางนา</option>
+                  <option value="มหาวิทยาลัย">สาขามหาวิทยาลัย</option>
+                  <option value="อารีย์">สาขาอารีย์</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-medium text-stone-700 mb-1">เมนูสินค้า</label>
+                <select id="f-product" class="w-full rounded-lg border border-stone-300 p-2 text-stone-800">
+                  <option value="P004" data-price="75">P004 · ลาเต้เย็น (฿75)</option>
+                  <option value="P001" data-price="65">P001 · เอสเพรสโซ่ร้อน (฿65)</option>
+                  <option value="P012" data-price="85">P012 · มัทฉะลาเต้ (฿85)</option>
+                  <option value="P028" data-price="65">P028 · อเมริกาโน่เย็น (฿65)</option>
+                </select>
+              </div>
+              <div>
+                <label class="block font-medium text-stone-700 mb-1">จำนวน (1–20 แก้ว)</label>
+                <input type="number" id="f-qty" value="2" min="1" max="20" class="w-full rounded-lg border border-stone-300 p-2 font-mono">
+              </div>
+              <div>
+                <label class="block font-medium text-stone-700 mb-1">วิธีชำระเงิน</label>
+                <select id="f-payment" class="w-full rounded-lg border border-stone-300 p-2 text-stone-800">
+                  <option value="QR พร้อมเพย์">QR พร้อมเพย์ (หน้าร้าน)</option>
+                  <option value="บัตรเครดิต">บัตรเครดิต (หน้าร้าน)</option>
+                  <option value="เงินสด">เงินสด (หน้าร้าน)</option>
+                  <option value="Grab">Grab (เดลิเวอรี)</option>
+                  <option value="LINE MAN">LINE MAN (เดลิเวอรี)</option>
+                </select>
+              </div>
+              <div class="sm:col-span-2">
+                <label class="block font-medium text-stone-700 mb-1">รหัสสมาชิก (ไม่บังคับ เช่น C01234)</label>
+                <input type="text" id="f-member" placeholder="เว้นว่างถ้าเป็นลูกค้า walk-in" class="w-full rounded-lg border border-stone-300 p-2 font-mono uppercase">
+              </div>
+            </div>
+
+            <div class="pt-2 flex items-center justify-between">
+              <button type="submit" class="px-5 py-2.5 bg-[#6B3E26] hover:bg-[#522f1c] text-white font-bold rounded-xl text-sm transition-colors shadow-xs">
+                บันทึกยอดขายลง Firestore
+              </button>
+              <span id="submitMsg" class="text-xs text-emerald-700 font-medium hidden">✓ บันทึกสำเร็จ</span>
+            </div>
+          </form>
+
+          <!-- บิลล่าสุด -->
+          <div id="recentSaleBox" class="mt-6 p-4 rounded-xl bg-stone-50 border border-stone-200 text-xs font-mono hidden">
+            <span class="text-stone-500 font-sans font-bold block mb-1">เอกสารล่าสุดที่บันทึก (Document payload):</span>
+            <pre id="recentSaleJson" class="text-stone-800 overflow-x-auto whitespace-pre-wrap"></pre>
+          </div>
+        </div>
+
+        <!-- Security Rules Inspector -->
+        <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm space-y-4">
+          <h3 class="font-bold text-stone-900">Security Rules Checklist</h3>
+          <div class="space-y-2 text-xs">
+            <div class="flex items-center gap-2 text-emerald-700">
+              <span>✅</span> <span>Default Deny (ปิดทุกอย่างเป็นค่าเริ่มต้น)</span>
+            </div>
+            <div class="flex items-center gap-2 text-emerald-700">
+              <span>✅</span> <span>ต้องล็อกอินเพื่ออ่านข้อมูล (signedIn)</span>
+            </div>
+            <div class="flex items-center gap-2 text-emerald-700">
+              <span>✅</span> <span>ห้ามแก้ไขหรือลบยอดขายจากเว็บ</span>
+            </div>
+            <div class="flex items-center gap-2 text-emerald-700">
+              <span>✅</span> <span>unit_price ตรวจกับแคตตาล็อกผ่าน get()</span>
+            </div>
+            <div class="flex items-center gap-2 text-emerald-700">
+              <span>✅</span> <span>created_by ล็อกตรงกับ request.auth.uid</span>
+            </div>
+            <div class="flex items-center gap-2 text-emerald-700">
+              <span>✅</span> <span>created_at ล็อกกับเวลาเซิร์ฟเวอร์ request.time</span>
+            </div>
+          </div>
+
+          <div class="pt-4 border-t border-stone-100">
+            <div class="text-xs font-bold text-stone-700 mb-1">ผลการนำเข้าประวัติ (Seed):</div>
+            <p class="text-xs text-stone-500 leading-relaxed">
+              นำเข้า 90 วันล่าสุด (~9,700 เอกสาร) โดยใช้วิธีเลื่อนวันที่ (Shift) ให้วันล่าสุดกลายเป็น "เมื่อวาน" ตามเวลาไทย Asia/Bangkok
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 4: ลูกค้า & เมนู RFM (Lab 4.1 & 4.2) -->
+    <!-- ========================================== -->
+    <section id="tab-rfm" class="tab-content hidden space-y-6">
+      <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+        <div class="inline-block px-2.5 py-0.5 bg-emerald-100 text-emerald-900 text-xs font-bold rounded mb-1">
+          การบ้านที่ 4 (Lab 4.1 & 4.2)
+        </div>
+        <h2 class="text-xl font-bold text-stone-900">การวิเคราะห์พฤติกรรมลูกค้า (RFM) & ความภักดี (Cohort Retention)</h2>
+        <p class="text-xs text-stone-500 mt-1">
+          แบ่งกลุ่มลูกค้าสมาชิก 2,507 คน ด้วย Recency, Frequency, Monetary และวิเคราะห์การกลับมาซื้อซ้ำ
+        </p>
+      </div>
+
+      <!-- RFM Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+        <div class="p-4 rounded-xl border border-emerald-300 bg-emerald-50/60">
+          <div class="text-xs font-bold text-emerald-950">👑 Champions</div>
+          <div class="text-2xl font-bold font-mono text-emerald-800 mt-1">455 <span class="text-xs font-normal">คน</span></div>
+          <div class="text-xs text-stone-500 mt-1">ครองยอดขาย <strong>38.5%</strong></div>
+        </div>
+        <div class="p-4 rounded-xl border border-blue-300 bg-blue-50/60">
+          <div class="text-xs font-bold text-blue-950">💎 Loyal</div>
+          <div class="text-2xl font-bold font-mono text-blue-800 mt-1">186 <span class="text-xs font-normal">คน</span></div>
+          <div class="text-xs text-stone-500 mt-1">ครองยอดขาย <strong>13.8%</strong></div>
+        </div>
+        <div class="p-4 rounded-xl border border-amber-300 bg-amber-50/60">
+          <div class="text-xs font-bold text-amber-950">🌱 New</div>
+          <div class="text-2xl font-bold font-mono text-amber-800 mt-1">358 <span class="text-xs font-normal">คน</span></div>
+          <div class="text-xs text-stone-500 mt-1">ครองยอดขาย <strong>3.9%</strong></div>
+        </div>
+        <div class="p-4 rounded-xl border border-purple-300 bg-purple-50/60">
+          <div class="text-xs font-bold text-purple-950">👀 Need Attention</div>
+          <div class="text-2xl font-bold font-mono text-purple-800 mt-1">499 <span class="text-xs font-normal">คน</span></div>
+          <div class="text-xs text-stone-500 mt-1">ครองยอดขาย <strong>11.5%</strong></div>
+        </div>
+        <div class="p-4 rounded-xl border border-red-300 bg-red-50/60">
+          <div class="text-xs font-bold text-red-950">⚠️ At Risk</div>
+          <div class="text-2xl font-bold font-mono text-red-800 mt-1">521 <span class="text-xs font-normal">คน</span></div>
+          <div class="text-xs text-stone-500 mt-1">ครองยอดขาย <strong>26.6%</strong></div>
+        </div>
+        <div class="p-4 rounded-xl border border-stone-300 bg-stone-100">
+          <div class="text-xs font-bold text-stone-900">💤 Lost</div>
+          <div class="text-2xl font-bold font-mono text-stone-700 mt-1">488 <span class="text-xs font-normal">คน</span></div>
+          <div class="text-xs text-stone-500 mt-1">ครองยอดขาย <strong>5.6%</strong></div>
+        </div>
+      </div>
+
+      <!-- Cohort & ABC Section -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+          <h3 class="font-bold text-stone-900 mb-2">Cohort Retention (อัตราการซื้อซ้ำ)</h3>
+          <div class="p-4 bg-stone-50 rounded-xl border border-stone-200 text-xs sm:text-sm space-y-2">
+            <div class="flex justify-between items-center">
+              <span class="font-medium text-stone-700">Cohort เม.ย. 68 (ลูกค้าใหม่รุ่นแรก):</span>
+              <span class="font-bold font-mono">73 คน</span>
+            </div>
+            <div class="flex justify-between items-center text-emerald-700">
+              <span class="font-medium">Month 1 Retention (พ.ค. 68):</span>
+              <span class="font-bold font-mono text-base">80.8% ~ 81%</span>
+            </div>
+            <p class="text-stone-500 text-xs pt-1 border-t border-stone-200">
+              * ข้อมูลเดือน ก.ย. 69 มีเพียง 20 วันแรก (lastMonthPartial = true) จึงทำให้ช่องมุมขวาล่างของ Heatmap ดูต่ำกว่าปกติ
+            </p>
+          </div>
+        </div>
+
+        <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+          <h3 class="font-bold text-stone-900 mb-2">ABC Menu Analysis (จัดกลุ่มสินค้าทำเงิน)</h3>
+          <div class="p-4 bg-stone-50 rounded-xl border border-stone-200 text-xs sm:text-sm space-y-2">
+            <div class="flex justify-between items-center text-emerald-800">
+              <span class="font-medium">กลุ่ม A (Core Revenue):</span>
+              <span class="font-bold font-mono text-base">25 เมนู (ครองยอดขาย 80.3%)</span>
+            </div>
+            <div class="flex justify-between items-center text-stone-600">
+              <span class="font-medium">กลุ่ม B & C (Long-tail items):</span>
+              <span class="font-bold font-mono">15 เมนู (ครองยอดขาย 19.7%)</span>
+            </div>
+            <p class="text-stone-500 text-xs pt-1 border-t border-stone-200">
+              สอดคล้องกับหลักการพาเรโต ช่วยให้ผู้จัดการร้านเน้นบริหารสต็อกเมล็ดกาแฟและนมสดในกลุ่ม A เป็นหลัก
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- TAB 5: พยากรณ์ & ผิดปกติ (Lab 4.4 & 4.5) -->
+    <!-- ========================================== -->
+    <section id="tab-forecast" class="tab-content hidden space-y-6">
+      <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+        <div class="inline-block px-2.5 py-0.5 bg-blue-100 text-blue-900 text-xs font-bold rounded mb-1">
+          การบ้านที่ 4 (Lab 4.4 & 4.5)
+        </div>
+        <h2 class="text-xl font-bold text-stone-900">ระบบพยากรณ์ยอดขาย (Forecasting) & ตรวจจับความผิดปกติ (Anomaly)</h2>
+        <p class="text-xs text-stone-500 mt-1">
+          โมเดลพยากรณ์ตามฤดูกาลรายสัปดาห์ (Weekly Seasonality) พร้อมการย้อนทดสอบ (Backtest)
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Sales Forecast Comparison -->
+        <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+          <h3 class="font-bold text-stone-900 mb-1">ผลการพยากรณ์ยอดขาย 28 วัน (สาขาสีลม)</h3>
+          <p class="text-xs text-stone-500 mb-4">เปรียบเทียบโมเดล Seasonal Forecast vs Flat Forecast</p>
+          <div class="space-y-3 text-xs sm:text-sm">
+            <div class="p-3 bg-emerald-50 rounded-xl border border-emerald-200 flex justify-between items-center">
+              <div>
+                <span class="font-bold text-emerald-950">Seasonal Model (โมเดลตามฤดูกาล):</span>
+                <p class="text-xs text-stone-500 mt-0.5">พยากรณ์แยกตามวันในสัปดาห์ (จันทร์-ศุกร์ พีค, ส.-อา. ต่ำ)</p>
+              </div>
+              <span class="font-bold font-mono text-emerald-700 text-base">MAPE &lt; 30%</span>
+            </div>
+            <div class="p-3 bg-red-50 rounded-xl border border-red-200 flex justify-between items-center">
+              <div>
+                <span class="font-bold text-red-950">Flat Model (ค่าเฉลี่ยเส้นตรง):</span>
+                <p class="text-xs text-stone-500 mt-0.5">ใช้ค่าเฉลี่ย 28 วันล่าสุด ไม่สนใจวันทำงานกับวันหยุด</p>
+              </div>
+              <span class="font-bold font-mono text-red-700 text-base">MAPE &gt; 70%</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top Anomalies List -->
+        <div class="bg-white rounded-2xl p-6 border border-stone-200 shadow-sm">
+          <h3 class="font-bold text-stone-900 mb-1">3 อันดับวันยอดขายผิดปกติสูงสุด (Top Anomalies)</h3>
+          <p class="text-xs text-stone-500 mb-4">ตรวจพบโดยอัตโนมัติจากคะแนนความผิดปกติ (Anomaly Score)</p>
+          <div class="space-y-2 text-xs">
+            <div class="p-3 rounded-lg border border-stone-200 bg-stone-50 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-stone-900">1. 14 ก.พ. 2026 · สาขาสยาม</span>
+                <p class="text-xs text-stone-500">วันวาเลนไทน์ ยอดขายเครื่องดื่มพุ่งสูงกว่าคาดการณ์อย่างมีนัยสำคัญ</p>
+              </div>
+              <span class="px-2 py-1 bg-amber-100 text-amber-900 font-bold rounded">ยอดพุ่งสูงพิเศษ</span>
+            </div>
+            <div class="p-3 rounded-lg border border-stone-200 bg-stone-50 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-stone-900">2. 20 พ.ค. 2026 · สาขาบางนา</span>
+                <p class="text-xs text-stone-500">วันวิสาขบูชา (วันหยุดราชการ) ลูกค้าครอบครัวเข้าห้างหนาแน่น</p>
+              </div>
+              <span class="px-2 py-1 bg-blue-100 text-blue-900 font-bold rounded">วันหยุดนักขัตฤกษ์</span>
+            </div>
+            <div class="p-3 rounded-lg border border-stone-200 bg-stone-50 flex items-center justify-between">
+              <div>
+                <span class="font-bold text-stone-900">3. 22 ส.ค. 2025 · สาขาสีลม</span>
+                <p class="text-xs text-stone-500">เหตุการณ์ไฟฟ้าขัดข้องช่วงบ่าย ทำให้ยอดขายตกลงผิดปกติ</p>
+              </div>
+              <span class="px-2 py-1 bg-red-100 text-red-900 font-bold rounded">ยอดตกผิดปกติ</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="mt-12 border-t border-stone-200 bg-white py-6 text-center text-xs text-stone-500">
+    BaanBrew Analytics Platform · ระบบวิเคราะห์และสนับสนุนการตัดสินใจด้วย AI · ADT-RAISE Batch 2
+  </footer>
+
+  <script>
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('tab-active');
+        btn.classList.add('text-stone-500');
+      });
+      document.getElementById(tabId).classList.remove('hidden');
+      document.getElementById('btn-' + tabId).classList.add('tab-active');
+      document.getElementById('btn-' + tabId).classList.remove('text-stone-500');
+    }
+
+    // Initialize Charts on Load
+    document.addEventListener('DOMContentLoaded', () => {
+      // 1. Hourly Bills by Branch Chart (Stack Bar)
+      const hourlyLabels = ["07:00", "08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", "20:00"];
+      new Chart(document.getElementById('hourlyBillsChart'), {
+        type: 'bar',
+        data: {
+          labels: hourlyLabels,
+          datasets: [
+            { label: 'สีลม (ออฟฟิศ)', data: [720, 1241, 1072, 524, 436, 927, 755, 430, 573, 478, 255, 172, 81, 74], backgroundColor: '#3B82F6' },
+            { label: 'สยาม (ห้าง)', data: [102, 179, 300, 447, 699, 961, 873, 849, 950, 1059, 1005, 868, 801, 471], backgroundColor: '#EC4899' },
+            { label: 'มหาวิทยาลัย', data: [286, 580, 579, 416, 490, 744, 647, 566, 694, 544, 312, 158, 129, 61], backgroundColor: '#F59E0B' },
+            { label: 'บางนา', data: [70, 152, 201, 366, 486, 728, 652, 650, 683, 791, 729, 612, 517, 351], backgroundColor: '#10B981' },
+            { label: 'อารีย์', data: [311, 462, 448, 408, 349, 379, 308, 273, 349, 295, 227, 205, 150, 113], backgroundColor: '#8B5CF6' }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { stacked: true, grid: { display: false } },
+            y: { stacked: true, grid: { color: '#f3f4f6' } }
+          },
+          plugins: {
+            legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } }
+          }
+        }
+      });
+
+      // 2. Daily Trend Chart
+      new Chart(document.getElementById('dailyTrendChart'), {
+        type: 'line',
+        data: {
+          labels: ['เม.ย. 68', 'มิ.ย. 68', 'ส.ค. 68', 'ต.ค. 68', 'ธ.ค. 68', 'ก.พ. 69', 'เม.ย. 69', 'มิ.ย. 69', 'ส.ค. 69', 'ก.ย. 69'],
+          datasets: [{
+            label: 'ค่าเฉลี่ยยอดขายรายวัน (บาท)',
+            data: [6800, 7200, 7500, 8100, 8900, 8400, 8600, 9100, 9400, 9800],
+            borderColor: '#6B3E26',
+            backgroundColor: 'rgba(107, 62, 38, 0.1)',
+            fill: true,
+            tension: 0.3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false } },
+            y: { grid: { color: '#f3f4f6' }, ticks: { callback: v => '฿' + v.toLocaleString() } }
+          }
+        }
+      });
+
+      // 3. Branch Summary Bar
+      new Chart(document.getElementById('branchSummaryChart'), {
+        type: 'bar',
+        data: {
+          labels: ['สยาม', 'สีลม', 'บางนา', 'มหาวิทยาลัย', 'อารีย์'],
+          datasets: [{
+            data: [1230027, 996244, 898991, 796066, 542115],
+            backgroundColor: '#2F7D5B',
+            borderRadius: 6
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: '#f3f4f6' }, ticks: { callback: v => (v/1e6).toFixed(1) + 'M' } },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    });
+
+    // Simulated Sale Submit for Tab 3
+    function handleSaleSubmit(e) {
+      e.preventDefault();
+      const branch = document.getElementById('f-branch').value;
+      const productSelect = document.getElementById('f-product');
+      const productId = productSelect.value;
+      const unitPrice = Number(productSelect.options[productSelect.selectedIndex].getAttribute('data-price'));
+      const qty = Number(document.getElementById('f-qty').value);
+      const payment = document.getElementById('f-payment').value;
+      const member = document.getElementById('f-member').value.trim() || null;
+      
+      const now = new Date();
+      const ymd = now.toISOString().slice(0, 10).replace(/-/g, '');
+      const hms = now.toTimeString().slice(0, 8).replace(/:/g, '');
+      const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+      const orderId = `WEB-${ymd}-${hms}-${rand}`;
+      
+      const doc = {
+        order_id: orderId,
+        product_id: productId,
+        branch: branch,
+        qty: qty,
+        unit_price: unitPrice,
+        revenue: qty * unitPrice,
+        payment_method: payment,
+        channel: (payment === 'Grab' || payment === 'LINE MAN') ? 'เดลิเวอรี' : 'หน้าร้าน',
+        customer_id: member,
+        source: 'web',
+        created_at: now.toISOString()
+      };
+
+      document.getElementById('recentSaleJson').textContent = JSON.stringify(doc, null, 2);
+      document.getElementById('recentSaleBox').classList.remove('hidden');
+      const submitMsg = document.getElementById('submitMsg');
+      submitMsg.classList.remove('hidden');
+      setTimeout(() => submitMsg.classList.add('hidden'), 3000);
+    }
+  </script>
+</body>
+</html>

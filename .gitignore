@@ -1,0 +1,12 @@
+# Firebase cache
+.firebase/
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# OS files
+Thumbs.db
+.DS_Store
