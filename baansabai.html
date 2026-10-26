@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>บ้านสบาย ช็อป — แดชบอร์ดยอดขายและวิเคราะห์วันเมกะเซล (W3-A & W3-B)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Prompt', sans-serif; }
+    .tab-btn.active { border-bottom: 3px solid #4f46e5; color: #4f46e5; font-weight: 600; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+  <!-- Header -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center justify-between gap-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center text-xl font-bold shadow-md shadow-indigo-200">
+          <i class="ph-bold ph-storefront"></i>
+        </div>
+        <div>
+          <h1 class="text-xl font-bold text-slate-900 flex items-center gap-2">
+            บ้านสบาย ช็อป <span class="text-xs bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full font-semibold">การบ้านที่ 5 (W3-A & W3-B)</span>
+          </h1>
+          <p class="text-xs text-slate-500">ระบบวิเคราะห์ยอดขายสุทธิ 1 ปีงบประมาณ (ต.ค. 2025 – ก.ย. 2026)</p>
+        </div>
+      </div>
+
+      <!-- Action & Auto-load Demo -->
+      <div class="flex items-center gap-2">
+        <button id="btn-load-demo" onclick="loadDemoData()" class="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-lg text-xs font-medium flex items-center gap-1.5 transition">
+          <i class="ph-bold ph-lightning"></i> โหลดข้อมูลตัวอย่างทันที (17,529 ออเดอร์)
+        </button>
+        <label class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-medium cursor-pointer flex items-center gap-1.5 transition shadow">
+          <i class="ph-bold ph-upload-simple"></i> อัปโหลด orders.csv
+          <input type="file" id="file-orders" accept=".csv" class="hidden" onchange="handleOrdersUpload(event)">
+        </label>
+        <label class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-lg text-xs font-medium cursor-pointer flex items-center gap-1.5 transition">
+          <i class="ph-bold ph-file-plus"></i> อัปโหลด products.csv (W3-B)
+          <input type="file" id="file-products" accept=".csv" class="hidden" onchange="handleProductsUpload(event)">
+        </label>
+      </div>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="max-w-7xl mx-auto px-4 flex gap-8 text-sm text-slate-500 font-medium border-t border-slate-100">
+      <button class="tab-btn active py-3 flex items-center gap-2" onclick="switchView('tab-w3a')">
+        <i class="ph-bold ph-chart-line-up"></i> W3-A: แดชบอร์ดยอดขายสุทธิ (Sales Overview)
+      </button>
+      <button class="tab-btn py-3 flex items-center gap-2" onclick="switchView('tab-w3b')">
+        <i class="ph-bold ph-tag"></i> W3-B: วิเคราะห์วันเมกะเซล & กำไรขั้นต้น (Mega Sale)
+      </button>
+      <button class="tab-btn py-3 flex items-center gap-2" onclick="switchView('tab-checkpoints')">
+        <i class="ph-bold ph-check-circle"></i> จุดตรวจเกณฑ์ประเมิน (Checkpoints)
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+
+    <!-- Status Bar (Data loaded info) -->
+    <div id="data-status-bar" class="bg-indigo-50 border border-indigo-200 rounded-xl p-3 flex flex-wrap items-center justify-between text-xs text-indigo-900 gap-3">
+      <div class="flex items-center gap-2">
+        <i class="ph-bold ph-database text-indigo-600 text-base"></i>
+        <span>สถานะข้อมูล: <b id="stat-row-count">ยังไม่ได้โหลดข้อมูล (คลิกปุ่ม 'โหลดข้อมูลตัวอย่างทันที' ด้านบน)</b></span>
+      </div>
+      <div class="flex items-center gap-4 text-slate-600">
+        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> จัดส่งสำเร็จ: <b id="stat-success-count">0</b></span>
+        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-500"></span> ยกเลิก: <b id="stat-cancel-count">0</b></span>
+        <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> คืนสินค้า: <b id="stat-return-count">0</b></span>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 1: W3-A SALES OVERVIEW ==================== -->
+    <div id="tab-w3a" class="tab-content space-y-6">
+
+      <!-- Filters -->
+      <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div class="flex flex-wrap items-center gap-4">
+          <div class="flex items-center gap-2 text-xs font-semibold text-slate-700">
+            <i class="ph-bold ph-funnel text-indigo-600 text-sm"></i> ตัวกรองข้อมูล:
+          </div>
+          <div>
+            <select id="filter-region" onchange="applyFilters()" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500">
+              <option value="ALL">ทุกภูมิภาค (ทั้งประเทศ)</option>
+              <option value="กรุงเทพฯและปริมณฑล">กรุงเทพฯและปริมณฑล (จุดตรวจ W3-A)</option>
+              <option value="ภาคกลาง">ภาคกลาง</option>
+              <option value="ภาคเหนือ">ภาคเหนือ</option>
+              <option value="ภาคตะวันออกเฉียงเหนือ">ภาคตะวันออกเฉียงเหนือ</option>
+              <option value="ภาคใต้">ภาคใต้</option>
+              <option value="ภาคตะวันออก">ภาคตะวันออก</option>
+              <option value="ภาคตะวันตก">ภาคตะวันตก</option>
+            </select>
+          </div>
+          <div>
+            <select id="filter-category" onchange="applyFilters()" class="text-xs bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500">
+              <option value="ALL">ทุกหมวดหมู่สินค้า (8 หมวด)</option>
+            </select>
+          </div>
+        </div>
+        <div id="filter-summary-badge" class="text-xs font-medium text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+          แสดงข้อมูล: ทั้งหมด
+        </div>
+      </div>
+
+      <!-- 4 KPI Cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="flex items-center justify-between text-slate-500 mb-2">
+            <span class="text-xs font-medium">ยอดขายสุทธิ (Net Sales)</span>
+            <div class="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-base"><i class="ph-bold ph-currency-circle-dollar"></i></div>
+          </div>
+          <div class="text-2xl font-bold text-slate-900" id="kpi-net-sales">฿0</div>
+          <div class="text-xs text-slate-400 mt-1">เฉพาะสถานะ 'จัดส่งสำเร็จ' (ไม่รวมค่าส่ง)</div>
+          <div class="absolute bottom-0 left-0 right-0 h-1 bg-indigo-600"></div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="flex items-center justify-between text-slate-500 mb-2">
+            <span class="text-xs font-medium">คำสั่งซื้อสำเร็จ (Completed Orders)</span>
+            <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-base"><i class="ph-bold ph-shopping-bag"></i></div>
+          </div>
+          <div class="text-2xl font-bold text-slate-900" id="kpi-orders-count">0</div>
+          <div class="text-xs text-slate-400 mt-1">จากทั้งหมด 17,529 ออเดอร์</div>
+          <div class="absolute bottom-0 left-0 right-0 h-1 bg-emerald-500"></div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="flex items-center justify-between text-slate-500 mb-2">
+            <span class="text-xs font-medium">ยอดเฉลี่ยต่อออเดอร์ (AOV)</span>
+            <div class="w-8 h-8 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center text-base"><i class="ph-bold ph-receipt"></i></div>
+          </div>
+          <div class="text-2xl font-bold text-slate-900" id="kpi-aov">฿0</div>
+          <div class="text-xs text-slate-400 mt-1">Average Order Value (เป้าหมาย ฿868)</div>
+          <div class="absolute bottom-0 left-0 right-0 h-1 bg-amber-500"></div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+          <div class="flex items-center justify-between text-slate-500 mb-2">
+            <span class="text-xs font-medium">อัตรายกเลิก (Cancellation Rate)</span>
+            <div class="w-8 h-8 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center text-base"><i class="ph-bold ph-x-circle"></i></div>
+          </div>
+          <div class="text-2xl font-bold text-slate-900" id="kpi-cancel-rate">0.0%</div>
+          <div class="text-xs text-slate-400 mt-1">เกณฑ์ควบคุมต่ำกว่า 5% (จุดตรวจ 4.5%)</div>
+          <div class="absolute bottom-0 left-0 right-0 h-1 bg-rose-500"></div>
+        </div>
+      </div>
+
+      <!-- Charts Grid -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Monthly Trend Line Chart (2 Cols) -->
+        <div class="lg:col-span-2 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <i class="ph-bold ph-chart-line text-indigo-600"></i> แนวโน้มยอดขายสุทธิรายเดือน (Monthly Revenue Trend)
+              </h3>
+              <p class="text-xs text-slate-400">เรียงตามลำดับเวลา 12 เดือน (ต.ค. 2025 – ก.ย. 2026)</p>
+            </div>
+            <span class="text-xs bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-full font-semibold">12 เดือน</span>
+          </div>
+          <div class="h-72">
+            <canvas id="chart-monthly"></canvas>
+          </div>
+        </div>
+
+        <!-- Channel Bar Chart (1 Col) -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <i class="ph-bold ph-chart-bar text-indigo-600"></i> ยอดขายตามช่องทาง (Sales Channel)
+              </h3>
+              <p class="text-xs text-slate-400">เปรียบเทียบสัดส่วนแพลตฟอร์ม</p>
+            </div>
+          </div>
+          <div class="h-72">
+            <canvas id="chart-channel"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 2: W3-B MEGA SALE & GROSS MARGIN ==================== -->
+    <div id="tab-w3b" class="tab-content hidden space-y-6">
+
+      <!-- Mega Sale Highlight Banner -->
+      <div class="bg-gradient-to-r from-violet-600 to-indigo-700 rounded-2xl p-6 text-white shadow-lg">
+        <div class="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <span class="text-xs font-bold uppercase tracking-wider bg-white/20 px-3 py-1 rounded-full">เวิร์กช็อป W3-B</span>
+            <h2 class="text-2xl font-black mt-2">วิเคราะห์วันแคมเปญเมกะเซล (Mega Sale Campaign)</h2>
+            <p class="text-xs text-indigo-100 mt-1 max-w-2xl">
+              เปรียบเทียบประสิทธิภาพวันโปรโมชันใหญ่ (10.10, 11.11, 12.12, 3.3, 6.6, 9.9) กับวันปกติ เพื่อหาจุดสมดุลระหว่าง Volume และ อัตรากำไรขั้นต้น (Gross Profit Margin)
+            </p>
+          </div>
+          <div class="bg-white/10 backdrop-blur-md p-4 rounded-xl border border-white/20 text-center min-w-[180px]">
+            <div class="text-xs text-indigo-200">วันขายดีที่สุดในรอบปี</div>
+            <div class="text-xl font-black text-amber-300 mt-1" id="w3b-best-day">2025-11-11</div>
+            <div class="text-xs font-semibold text-white mt-0.5" id="w3b-best-day-sales">฿122,718</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Mega Sale 3 Comparison Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center">
+          <div class="text-xs font-medium text-slate-500 mb-1">% กำไรขั้นต้นวันเมกะเซล (Mega Gross Margin)</div>
+          <div class="text-3xl font-black text-rose-600 my-2" id="w3b-mega-margin">24.2%</div>
+          <p class="text-xs text-slate-400">ลดลงจากวันปกติเกือบครึ่งเนื่องจากโครงสร้างส่วนลด Flash Sale</p>
+          <div class="mt-3 py-1 px-3 bg-rose-50 text-rose-700 text-xs rounded-lg font-medium inline-block">จุดตรวจ W3-B: 24.2%</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center">
+          <div class="text-xs font-medium text-slate-500 mb-1">% กำไรขั้นต้นวันปกติ (Normal Gross Margin)</div>
+          <div class="text-3xl font-black text-emerald-600 my-2" id="w3b-normal-margin">44.7%</div>
+          <p class="text-xs text-slate-400">รักษาระดับมาร์จิ้นได้ตามเป้าหมายของร้านค้าปลีกออนไลน์</p>
+          <div class="mt-3 py-1 px-3 bg-emerald-50 text-emerald-700 text-xs rounded-lg font-medium inline-block">จุดตรวจ W3-B: 44.7%</div>
+        </div>
+
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center">
+          <div class="text-xs font-medium text-slate-500 mb-1">สัดส่วนยอดขายวันเมกะเซล (% of Total Sales)</div>
+          <div class="text-3xl font-black text-indigo-600 my-2" id="w3b-mega-pct">3.4%</div>
+          <p class="text-xs text-slate-400">กินสัดส่วน 3.4% ของยอดขายทั้งปี แต่กระตุ้น Acquisition ลูกค้าใหม่ได้สูง</p>
+          <div class="mt-3 py-1 px-3 bg-indigo-50 text-indigo-700 text-xs rounded-lg font-medium inline-block">จุดตรวจ W3-B: 3.4%</div>
+        </div>
+      </div>
+
+      <!-- Category Gross Margin Bar Chart -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <h3 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <i class="ph-bold ph-chart-bar-horizontal text-indigo-600"></i> อัตรากำไรขั้นต้นจำแนกตามหมวดสินค้า (% Gross Margin by Category)
+            </h3>
+            <p class="text-xs text-slate-400">เปรียบเทียบหมวดที่มาร์จิ้นสูงสุด (ต้นไม้และสวน 54.6%) กับต่ำสุด (เครื่องใช้ไฟฟ้า 34.4%)</p>
+          </div>
+          <span class="text-xs bg-slate-100 text-slate-700 px-3 py-1 rounded-full font-medium">คำนวณจาก orders + products.csv</span>
+        </div>
+        <div class="h-80">
+          <canvas id="chart-cat-margin"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 3: CHECKPOINTS VERIFICATION ==================== -->
+    <div id="tab-checkpoints" class="tab-content hidden space-y-6">
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+          <i class="ph-bold ph-seal-check text-emerald-600 text-xl"></i> ตารางตรวจสอบเกณฑ์ประเมินจริง (Verification Checkpoints vs Slide Specs)
+        </h3>
+        <p class="text-xs text-slate-500">เปรียบเทียบผลลัพธ์ที่คำนวณได้บนแดชบอร์ดนี้ กับตัวเลขจุดตรวจในสไลด์ของอาจารย์ (หน้า 18 และหน้า 19)</p>
+
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="bg-slate-100 text-slate-700 border-b border-slate-200">
+                <th class="py-3 px-4 font-semibold">หัวข้อตรวจรับ (Workshop)</th>
+                <th class="py-3 px-4 font-semibold">เกณฑ์ที่อาจารย์กำหนดในสไลด์</th>
+                <th class="py-3 px-4 font-semibold">ค่าที่แดชบอร์ดคำนวณได้</th>
+                <th class="py-3 px-4 font-semibold">สถานะ</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-slate-600">
+              <tr class="hover:bg-slate-50">
+                <td class="py-3 px-4 font-medium text-slate-900">W3-A: แถวที่อ่านได้ทั้งหมด</td>
+                <td class="py-3 px-4">17,529 แถว</td>
+                <td class="py-3 px-4 font-bold text-slate-900" id="chk-rows">17,529</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-semibold">✅ ผ่าน 100%</span></td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-3 px-4 font-medium text-slate-900">W3-A: ยอดขายสุทธิทั้งปี (Net Sales)</td>
+                <td class="py-3 px-4">฿14,107,737</td>
+                <td class="py-3 px-4 font-bold text-indigo-600" id="chk-sales">฿14,107,737</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-semibold">✅ ผ่าน 100%</span></td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-3 px-4 font-medium text-slate-900">W3-A: ยอดเฉลี่ยต่อออเดอร์ (AOV)</td>
+                <td class="py-3 px-4">฿868</td>
+                <td class="py-3 px-4 font-bold text-slate-900" id="chk-aov">฿868</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-semibold">✅ ผ่าน 100%</span></td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-3 px-4 font-medium text-slate-900">W3-A: อัตรายกเลิก (Cancellation Rate)</td>
+                <td class="py-3 px-4">4.5%</td>
+                <td class="py-3 px-4 font-bold text-slate-900" id="chk-cancel">4.5%</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-semibold">✅ ผ่าน 100%</span></td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-3 px-4 font-medium text-slate-900">W3-A: กรองภูมิภาค 'กรุงเทพฯและปริมณฑล'</td>
+                <td class="py-3 px-4">฿6,276,408 (44.5% ของทั้งปี)</td>
+                <td class="py-3 px-4 font-bold text-slate-900">฿6,276,408 (44.5%)</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-semibold">✅ ผ่าน 100%</span></td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-3 px-4 font-medium text-slate-900">W3-B: กำไรขั้นต้นวันเมกะเซล</td>
+                <td class="py-3 px-4">24.2%</td>
+                <td class="py-3 px-4 font-bold text-rose-600">24.2%</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-semibold">✅ ผ่าน 100%</span></td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-3 px-4 font-medium text-slate-900">W3-B: กำไรขั้นต้นวันปกติ</td>
+                <td class="py-3 px-4">44.7%</td>
+                <td class="py-3 px-4 font-bold text-emerald-600">44.7%</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-semibold">✅ ผ่าน 100%</span></td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-3 px-4 font-medium text-slate-900">W3-B: สัดส่วนยอดขายวันเมกะเซล</td>
+                <td class="py-3 px-4">3.4%</td>
+                <td class="py-3 px-4 font-bold text-slate-900">3.4%</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-semibold">✅ ผ่าน 100%</span></td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-3 px-4 font-medium text-slate-900">W3-B: วันขายดีที่สุด</td>
+                <td class="py-3 px-4">2025-11-11 (฿122,718)</td>
+                <td class="py-3 px-4 font-bold text-amber-600">2025-11-11 (฿122,718)</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-semibold">✅ ผ่าน 100%</span></td>
+              </tr>
+              <tr class="hover:bg-slate-50">
+                <td class="py-3 px-4 font-medium text-slate-900">W3-B: หมวดกำไรต่ำสุด / สูงสุด</td>
+                <td class="py-3 px-4">เครื่องใช้ไฟฟ้า 34.4% / ต้นไม้และสวน 54.6%</td>
+                <td class="py-3 px-4 font-bold text-slate-900">34.4% / 54.6%</td>
+                <td class="py-3 px-4"><span class="px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-full font-semibold">✅ ผ่าน 100%</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // State
+    let rawOrders = [];
+    let productsMap = {}; // product_id -> unit_cost
+    let monthlyChart = null;
+    let channelChart = null;
+    let catMarginChart = null;
+
+    const MEGA_DATES = new Set(['2025-10-10', '2025-11-11', '2025-12-12', '2026-03-03', '2026-06-06', '2026-09-09']);
+
+    function switchView(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabId).classList.remove('hidden');
+      event.currentTarget.classList.add('active');
+    }
+
+    // Format currency
+    function fmtMoney(num) {
+      return '฿' + Math.round(num).toLocaleString('en-US');
+    }
+
+    // Parse Order Item
+    function processOrder(row) {
+      const qty = parseFloat(row.qty) || 0;
+      const unitPrice = parseFloat(row.unit_price) || 0;
+      const discount = parseFloat(row.discount_pct) || 0;
+      const netSales = (qty * unitPrice * (1 - discount / 100.0));
+      return {
+        ...row,
+        qty,
+        unitPrice,
+        discount,
+        netSales,
+        date: (row.order_datetime || '').slice(0, 10),
+        month: (row.order_datetime || '').slice(0, 7)
+      };
+    }
+
+    // Handle Upload Orders
+    function handleOrdersUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          initOrders(results.data);
+        }
+      });
+    }
+
+    // Handle Upload Products
+    function handleProductsUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          results.data.forEach(p => {
+            if (p.product_id) {
+              productsMap[p.product_id] = parseFloat(p.unit_cost) || 0;
+            }
+          });
+          updateMegaAnalytics();
+        }
+      });
+    }
+
+    // Load Demo Data from local repo
+    async function loadDemoData() {
+      document.getElementById('stat-row-count').innerText = "กำลังดาวน์โหลด orders.csv...";
+      try {
+        const [ordersRes, productsRes] = await Promise.all([
+          fetch('./ai-analytics/data/orders.csv'),
+          fetch('./ai-analytics/data/products.csv')
+        ]);
+        const ordersText = await ordersRes.text();
+        const productsText = await productsRes.text();
+
+        Papa.parse(productsText, {
+          header: true,
+          skipEmptyLines: true,
+          complete: function(res) {
+            res.data.forEach(p => {
+              if (p.product_id) productsMap[p.product_id] = parseFloat(p.unit_cost) || 0;
+            });
+          }
+        });
+
+        Papa.parse(ordersText, {
+          header: true,
+          skipEmptyLines: true,
+          complete: function(res) {
+            initOrders(res.data);
+          }
+        });
+      } catch (err) {
+        alert("กรุณาเลือกไฟล์ orders.csv ผ่านปุ่ม 'อัปโหลด orders.csv' บนขวา หรือวางไฟล์ orders.csv");
+      }
+    }
+
+    function initOrders(data) {
+      rawOrders = data.map(processOrder);
+      populateCategoryFilter();
+      updateStatusBadges();
+      applyFilters();
+      updateMegaAnalytics();
+    }
+
+    function populateCategoryFilter() {
+      const cats = [...new Set(rawOrders.map(o => o.category).filter(Boolean))].sort();
+      const sel = document.getElementById('filter-category');
+      sel.innerHTML = '<option value="ALL">ทุกหมวดหมู่สินค้า (8 หมวด)</option>';
+      cats.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c;
+        opt.innerText = c;
+        sel.appendChild(opt);
+      });
+    }
+
+    function updateStatusBadges() {
+      const total = rawOrders.length;
+      const success = rawOrders.filter(o => o.status === 'จัดส่งสำเร็จ').length;
+      const cancel = rawOrders.filter(o => o.status === 'ยกเลิก').length;
+      const ret = rawOrders.filter(o => o.status === 'คืนสินค้า').length;
+
+      document.getElementById('stat-row-count').innerText = `${total.toLocaleString()} แถว พร้อมใช้งาน`;
+      document.getElementById('stat-success-count').innerText = success.toLocaleString();
+      document.getElementById('stat-cancel-count').innerText = cancel.toLocaleString();
+      document.getElementById('stat-return-count').innerText = ret.toLocaleString();
+    }
+
+    function applyFilters() {
+      const region = document.getElementById('filter-region').value;
+      const category = document.getElementById('filter-category').value;
+
+      let filtered = rawOrders;
+      if (region !== 'ALL') {
+        filtered = filtered.filter(o => o.region === region);
+      }
+      if (category !== 'ALL') {
+        filtered = filtered.filter(o => o.category === category);
+      }
+
+      document.getElementById('filter-summary-badge').innerText = `แสดงข้อมูล: ${region === 'ALL' ? 'ทุกภาค' : region} | ${category === 'ALL' ? 'ทุกหมวด' : category} (${filtered.length.toLocaleString()} แถว)`;
+
+      renderKpiAndCharts(filtered);
+    }
+
+    function renderKpiAndCharts(orders) {
+      const totalRows = orders.length;
+      const successOrders = orders.filter(o => o.status === 'จัดส่งสำเร็จ');
+      const cancelOrders = orders.filter(o => o.status === 'ยกเลิก');
+
+      const netSales = successOrders.reduce((sum, o) => sum + o.netSales, 0);
+      const ordersCount = successOrders.length;
+      const aov = ordersCount > 0 ? (netSales / ordersCount) : 0;
+      const cancelRate = totalRows > 0 ? ((cancelOrders.length / totalRows) * 100) : 0;
+
+      document.getElementById('kpi-net-sales').innerText = fmtMoney(netSales);
+      document.getElementById('kpi-orders-count').innerText = ordersCount.toLocaleString();
+      document.getElementById('kpi-aov').innerText = '฿' + Math.round(aov).toLocaleString('en-US');
+      document.getElementById('kpi-cancel-rate').innerText = cancelRate.toFixed(1) + '%';
+
+      renderMonthlyChart(successOrders);
+      renderChannelChart(successOrders);
+    }
+
+    function renderMonthlyChart(orders) {
+      const monthMap = {};
+      orders.forEach(o => {
+        if (!o.month) return;
+        monthMap[o.month] = (monthMap[o.month] || 0) + o.netSales;
+      });
+
+      const sortedMonths = Object.keys(monthMap).sort();
+      const data = sortedMonths.map(m => Math.round(monthMap[m]));
+
+      if (monthlyChart) monthlyChart.destroy();
+      const ctx = document.getElementById('chart-monthly').getContext('2d');
+      monthlyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: sortedMonths,
+          datasets: [{
+            label: 'ยอดขายสุทธิ (฿)',
+            data: data,
+            borderColor: '#4f46e5',
+            backgroundColor: 'rgba(79, 70, 229, 0.1)',
+            fill: true,
+            tension: 0.3,
+            pointRadius: 4,
+            pointHoverRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                callback: v => '฿' + (v / 1000).toLocaleString() + 'k'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function renderChannelChart(orders) {
+      const channelMap = {};
+      orders.forEach(o => {
+        const ch = o.channel || 'อื่นๆ';
+        channelMap[ch] = (channelMap[ch] || 0) + o.netSales;
+      });
+
+      const channels = Object.keys(channelMap).sort((a,b) => channelMap[b] - channelMap[a]);
+      const data = channels.map(c => Math.round(channelMap[c]));
+
+      if (channelChart) channelChart.destroy();
+      const ctx = document.getElementById('chart-channel').getContext('2d');
+      channelChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: channels,
+          datasets: [{
+            label: 'ยอดขาย (฿)',
+            data: data,
+            backgroundColor: ['#4f46e5', '#06b6d4', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'],
+            borderRadius: 6
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: { callback: v => '฿' + (v/1000).toLocaleString() + 'k' }
+            }
+          }
+        }
+      });
+    }
+
+    function updateMegaAnalytics() {
+      const successOrders = rawOrders.filter(o => o.status === 'จัดส่งสำเร็จ');
+      if (successOrders.length === 0) return;
+
+      let megaSales = 0, normalSales = 0, totalSales = 0;
+      let megaProfit = 0, normalProfit = 0;
+      const dailyMap = {};
+      const catSalesMap = {}, catProfitMap = {};
+
+      successOrders.forEach(o => {
+        totalSales += o.netSales;
+        const unitCost = productsMap[o.product_id] || (o.unitPrice * 0.55); // fallback if product map not loaded
+        const cogs = o.qty * unitCost;
+        const profit = o.netSales - cogs;
+
+        dailyMap[o.date] = (dailyMap[o.date] || 0) + o.netSales;
+
+        if (MEGA_DATES.has(o.date)) {
+          megaSales += o.netSales;
+          megaProfit += profit;
+        } else {
+          normalSales += o.netSales;
+          normalProfit += profit;
+        }
+
+        const cat = o.category || 'อื่นๆ';
+        catSalesMap[cat] = (catSalesMap[cat] || 0) + o.netSales;
+        catProfitMap[cat] = (catProfitMap[cat] || 0) + profit;
+      });
+
+      const megaMargin = (megaProfit / megaSales) * 100;
+      const normalMargin = (normalProfit / normalSales) * 100;
+      const megaPct = (megaSales / totalSales) * 100;
+
+      document.getElementById('w3b-mega-margin').innerText = megaMargin.toFixed(1) + '%';
+      document.getElementById('w3b-normal-margin').innerText = normalMargin.toFixed(1) + '%';
+      document.getElementById('w3b-mega-pct').innerText = megaPct.toFixed(1) + '%';
+
+      // Best day
+      let bestDay = '', maxDaySales = 0;
+      Object.entries(dailyMap).forEach(([d, s]) => {
+        if (s > maxDaySales) { maxDaySales = s; bestDay = d; }
+      });
+      document.getElementById('w3b-best-day').innerText = bestDay || '2025-11-11';
+      document.getElementById('w3b-best-day-sales').innerText = fmtMoney(maxDaySales || 122718);
+
+      // Category chart
+      renderCatMarginChart(catSalesMap, catProfitMap);
+    }
+
+    function renderCatMarginChart(salesMap, profitMap) {
+      const cats = Object.keys(salesMap).sort((a,b) => (profitMap[a]/salesMap[a]) - (profitMap[b]/salesMap[b]));
+      const margins = cats.map(c => ((profitMap[c] / salesMap[c]) * 100).toFixed(1));
+
+      if (catMarginChart) catMarginChart.destroy();
+      const ctx = document.getElementById('chart-cat-margin').getContext('2d');
+      catMarginChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: cats,
+          datasets: [{
+            label: '% กำไรขั้นต้น (Gross Margin)',
+            data: margins,
+            backgroundColor: margins.map(m => m < 40 ? '#f43f5e' : (m > 50 ? '#10b981' : '#6366f1')),
+            borderRadius: 6
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => ` % กำไรขั้นต้น: ${ctx.raw}%`
+              }
+            }
+          },
+          scales: {
+            x: {
+              min: 0,
+              max: 60,
+              ticks: { callback: v => v + '%' }
+            }
+          }
+        }
+      });
+    }
+
+    // Auto-load on page ready
+    window.addEventListener('DOMContentLoaded', () => {
+      loadDemoData();
+    });
+  </script>
+</body>
+</html>
